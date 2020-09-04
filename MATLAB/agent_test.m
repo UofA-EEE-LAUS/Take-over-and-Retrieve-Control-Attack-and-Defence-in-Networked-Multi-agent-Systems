@@ -1,3 +1,8 @@
+% FYP7331
+% agent_test.m
+% By Moyang Feng
+% Example of roverControl APIs with connection to VREP
+
 clear all;
 close all;
 clc;
@@ -6,6 +11,10 @@ clc;
 sim=remApi('remoteApi');
 sim.simxFinish(-1); % close all opened connections
 clientID=sim.simxStart('127.0.0.1',19997,true,true,5000,5);
+
+% Start UDP host on port 4012
+echoudp('off');
+echoudp('on',4012);
 
 % connection successful
 if (clientID>-1)
@@ -37,6 +46,11 @@ if (clientID>-1)
     [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_streaming);
     [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_streaming);
     
+    % UDP communication example
+    rovers(1).writeUDP(rovers(2));
+    received = rovers(2).readUDP();
+    disp(received);
+    
     % set rover motion
     rc.moveSpin(rovers(1),-1,0);
     rc.moveSpin(rovers(2),0,0);
@@ -45,7 +59,6 @@ if (clientID>-1)
 
     % Main loop
     while 1
-        
         % laser sensor processing
         [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_buffer);
         if detectionState && returnCode == sim.simx_return_ok
@@ -54,13 +67,14 @@ if (clientID>-1)
             fprintf('%.4fm %.2fdegrees\n',distance,theta); % 0.15m bias
         end
         
+        % rover position and orientation
         [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_buffer);
         [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_buffer);
         disp(roverPos);
         disp(roverOri);
         
         % timestep
-        pause(0.1);
+        pause(0.1);s
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,6 +90,15 @@ if (clientID>-1)
 %         end
 %     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    % Stop UDP echo server
+    echoudp('off');
+    
+    % clean up rovers
+    for i = 1:roverCount
+        rc.stop(rovers(i));
+        rovers(i).delete();
+    end
 
     % stop simulation
     sim.simxStopSimulation(clientID,sim.simx_opmode_blocking);
