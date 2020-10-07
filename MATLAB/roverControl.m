@@ -107,7 +107,18 @@ classdef roverControl
             [rtn,roverPos] = obj.sim.simxGetObjectOrientation(obj.clientID,rover.roverHandle,-1,opmode);
         end
         
-        %%%%%%%%%% Motion Control %%%%%%%%%%
+        %%%%%%%%%% Motion Control (New) %%%%%%%%%%
+        
+        % set the target coordinates and orientation of a rover
+        
+        function [rtn] = setRoverCoordinate(obj,rover,x,y,a)
+            stringname = strcat('roverCoor',num2str(rover.roverID));
+            coordinates = [x y a];
+            packedData=obj.sim.simxPackFloats(coordinates);
+            [rtn]=obj.sim.simxWriteStringStream(obj.clientID,stringname,packedData,obj.sim.simx_opmode_oneshot);
+        end
+        
+        %%%%%%%%%% Motion Control (OLD, No Longer Required) %%%%%%%%%%
         
         function moveSpin(obj,rover,x,y)
             
@@ -215,7 +226,7 @@ classdef roverControl
         
         % let a rover go forward
         function goForward(obj,rover,velocity)
-            motorVelocities = [-1,0,1];
+            motorVelocities = [0,0,1];
             setRoverMotorVelocities(obj,rover,velocity * motorVelocities);
         end
         

@@ -53,15 +53,15 @@ classdef rover
         
         % methods
         
-        % write rover properties to another rover
-        function writeUDP(obj,rover)
+        % feedback rover status to the host
+        function writeUDP(obj,host)
             data = [obj.roverID obj.availability obj.leadership];
-            fwrite(rover.u,data);
+            fwrite(host,data);
         end
         
-        % read received data from another rover
-        function received = readUDP(obj)
-            received = fread(obj.u,3);
+        % read received data from host
+        function received = readUDP(obj,n)
+            received = fread(obj.u,n);
         end
         
         % print basic info of the rover

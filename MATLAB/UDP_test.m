@@ -17,10 +17,10 @@ fopen(u2);
 fwrite(u1,65:74);
 A = fread(u1,10);
 
-fwrite(u2,65:74);
+fwrite(u2,75:84);
 B = fread(u2,10);
 
-pause (10); 
+pause(10);
 
 echoudp('off');
 

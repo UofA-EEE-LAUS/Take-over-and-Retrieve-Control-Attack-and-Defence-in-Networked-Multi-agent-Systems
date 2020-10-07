@@ -15,6 +15,8 @@ clientID=sim.simxStart('127.0.0.1',19997,true,true,5000,5);
 % Start UDP host on port 4012
 echoudp('off');
 echoudp('on',4012);
+host = udp('127.0.0.1','RemotePort',4012);
+fopen(host);
 
 % connection successful
 if (clientID>-1)
@@ -43,56 +45,76 @@ if (clientID>-1)
     % initiate laser sensor
     [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_streaming);
     
+    % get position and orientation of rover
     [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_streaming);
     [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_streaming);
     
     % UDP communication example
-    rovers(1).writeUDP(rovers(2));
-    received = rovers(2).readUDP();
+    rovers(1).writeUDP(host);
+    received = fread(host,3);
     disp(received);
     
-    % set rover motion
-    rc.moveSpin(rovers(1),-1,0);
-    rc.moveSpin(rovers(2),0,0);
-    rc.moveSpin(rovers(3),1,0);
-    %MoveSpin(sim,clientID,rovers(1).roverHandle,5,5);
-
+    rovers(2).writeUDP(host);
+    received = fread(host,3);
+    disp(received);
+    
+    fwrite(rovers(1).u,1:10);
+    received = rovers(1).readUDP(10);
+    disp(received);
+    
+    % motion control examples
+    % [x,y,angle]
+    returnCode = rc.setRoverCoordinate(rovers(1),-0.25,-2.25,150);
+    returnCode = rc.setRoverCoordinate(rovers(2),1.25,-1.25,150);
+    returnCode = rc.setRoverCoordinate(rovers(3),-1.75,-1.25,150);
+    
     % Main loop
-    while 1
-        % laser sensor processing
-        [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_buffer);
-        if detectionState && returnCode == sim.simx_return_ok
-            distance = abs(norm(detectedPoint) - 0.15);
-            theta = 180 * atan(detectedPoint(1)/detectedPoint(3)) / pi;
-            fprintf('%.4fm %.2fdegrees\n',distance,theta); % 0.15m bias
-        end
+%     while 1
         
-        % rover position and orientation
-        [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_buffer);
-        [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_buffer);
-        disp(roverPos);
-        disp(roverOri);
+%         a=input('Rover positions = '); %5 rovers [x1 y1 a1 x2 y2 a2 x3 y3 a3] 
+%     
+%         if (a == 0)
+%             break;
+%         end
+% 
+%         packedData=sim.simxPackFloats(a);
+%         [returnCode]=sim.simxWriteStringStream(clientID,'roverCoordinates',packedData,sim.simx_opmode_oneshot); 
         
-        % timestep
-        pause(0.1);s
-    end
+%         % laser sensor processing
+%         [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_buffer);
+%         if detectionState && returnCode == sim.simx_return_ok
+%             distance = abs(norm(detectedPoint) - 0.15);
+%             theta = 180 * atan(detectedPoint(1)/detectedPoint(3)) / pi;
+%             fprintf('%.4fm %.2fdegrees\n',distance,theta); % 0.15m bias
+%         end
+%         
+%         % rover position and orientation
+%         [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_buffer);
+%         [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_buffer);
+%         disp(roverPos);
+%         disp(roverOri);
+%         
+%         % timestep
+%         pause(0.1);
+%     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     command = '';
-%     while 1
-%         command=input('FYP7331 >> ','s');
-%         if strcmp(command,'quit')
-%             break;
-%         elseif strcmp(command,'help')
-%             disp('quit - Stop simulation');
-%         else
-%             disp('Invalid command!');
-%         end
-%     end
+    while 1
+        command=input('FYP7331 >> ','s');
+        if strcmp(command,'quit')
+            break;
+        elseif strcmp(command,'help')
+            disp('quit - Stop simulation');
+        else
+            disp('Invalid command!');
+        end
+    end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Stop UDP echo server
     echoudp('off');
+    fclose(host);
+    delete(host);
     
     % clean up rovers
     for i = 1:roverCount
