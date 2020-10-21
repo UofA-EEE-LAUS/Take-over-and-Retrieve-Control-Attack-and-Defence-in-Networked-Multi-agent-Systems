@@ -10,11 +10,15 @@ classdef rover
         roverID;
         availability;
         leadership;
+        position;       % [x y z]
+        orientation;    % [roll pitch yaw]
+        target;         % [x y angle]
         
         % handles
         roverHandle;
         motorHandles;
         laserHandle;
+        cameraHandle;
         gyroHandle;
         accelHandle;
         
@@ -28,13 +32,18 @@ classdef rover
         
         % constructor
         
-        function obj = rover(roverID,roverHandle,motorHandles,laserHandle,gyroHandle,accelHandle)
+        function obj = rover(roverID,roverHandle,motorHandles,laserHandle,cameraHandle,gyroHandle,accelHandle)
             obj.roverID = roverID;
             obj.availability = true;
             obj.leadership = false;
+            obj.position = zeros(1,3);
+            obj.orientation = zeros(1,3);
+            obj.target = zeros(1,3);
+            
             obj.roverHandle = roverHandle;
             obj.motorHandles = motorHandles;
             obj.laserHandle = laserHandle;
+            obj.cameraHandle = cameraHandle;
             obj.gyroHandle = gyroHandle;
             obj.accelHandle = accelHandle;
             
@@ -62,6 +71,13 @@ classdef rover
         % read received data from host
         function received = readUDP(obj,n)
             received = fread(obj.u,n);
+        end
+        
+        % get the distance and angle from current position to target
+        function diff = getTargetDiff(obj)
+            distance = norm(obj.target(1:2) - obj.position(1:2));
+            angle = abs((obj.target(3) - rad2deg(obj.orientation(3)) - 150));
+            diff = [distance angle];
         end
         
         % print basic info of the rover

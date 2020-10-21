@@ -35,10 +35,11 @@ classdef roverControl
             roverHandles = initRoverHandles(obj);
             motorHandles = initMotorHandles(obj);
             laserHandles = initLaserHandles(obj);
+            cameraHandles = initCameraHandles(obj);
             gyroHandles = initGyroHandles(obj);
             accelHandles = initAccelHandles(obj);
             for i = 1:obj.roverCount
-                rovers(i) = rover(i,roverHandles(i),motorHandles(i,:),laserHandles(i),gyroHandles(i),accelHandles(i));
+                rovers(i) = rover(i,roverHandles(i),motorHandles(i,:),laserHandles(i),cameraHandles(i),gyroHandles(i),accelHandles(i));
             end
         end
         
@@ -66,6 +67,14 @@ classdef roverControl
             laserHandles = zeros(1,obj.roverCount);
             for i = 1:obj.roverCount
                 [~,laserHandles(i)] = obj.sim.simxGetObjectHandle(obj.clientID,strcat('laser_sensor',num2str(i)),obj.sim.simx_opmode_blocking);
+            end
+        end
+        
+        % get camera handles and store in an array
+        function cameraHandles = initCameraHandles(obj)
+            cameraHandles = zeros(1,obj.roverCount);
+            for i = 1:obj.roverCount
+                [~,cameraHandles(i)] = obj.sim.simxGetObjectHandle(obj.clientID,strcat('camera',num2str(i)),obj.sim.simx_opmode_blocking);
             end
         end
         
@@ -97,6 +106,12 @@ classdef roverControl
             [rtn,detectionState,detectedPoint,~,~] = obj.sim.simxReadProximitySensor(obj.clientID,rover.laserHandle,opmode);
         end
         
+        % read the camera image from a rover
+        % mode = 0 for grayscale, otherwise RGB
+        function [rtn,res,im] = getCameraImage(obj,rover,option,opmode)
+            [rtn,res,im] = obj.sim.simxGetVisionSensorImage2(obj.clientID,rover.cameraHandle,option,opmode);
+        end
+        
         % get the coordinate of a rover in earth frame
         function [rtn,roverPos] = getRoverPos(obj,rover,opmode)
             [rtn,roverPos] = obj.sim.simxGetObjectPosition(obj.clientID,rover.roverHandle,-1,opmode);
@@ -110,119 +125,25 @@ classdef roverControl
         %%%%%%%%%% Motion Control (New) %%%%%%%%%%
         
         % set the target coordinates and orientation of a rover
-        
         function [rtn] = setRoverCoordinate(obj,rover,x,y,a)
             stringname = strcat('roverCoor',num2str(rover.roverID));
-            coordinates = [x y a];
-            packedData=obj.sim.simxPackFloats(coordinates);
-            [rtn]=obj.sim.simxWriteStringStream(obj.clientID,stringname,packedData,obj.sim.simx_opmode_oneshot);
+            rover.target = [x y a];
+            packedData = obj.sim.simxPackFloats(rover.target);
+            rtn = obj.sim.simxWriteStringStream(obj.clientID,stringname,packedData,obj.sim.simx_opmode_oneshot);
+        end
+        
+        % set the target coordinates for all rovers
+        function [rtn] = setRoverTargets(obj,rovers,targets)
+            coordinates = double.empty;
+            for i = 1:size(targets,1)
+                rovers(i).target = targets(i,:);
+                coordinates = [coordinates targets(i,:)];
+            end
+            packedData = obj.sim.simxPackFloats(coordinates);
+            rtn = obj.sim.simxWriteStringStream(obj.clientID,'roverCoordinates',packedData,obj.sim.simx_opmode_oneshot);
         end
         
         %%%%%%%%%% Motion Control (OLD, No Longer Required) %%%%%%%%%%
-        
-        function moveSpin(obj,rover,x,y)
-            
-            %get position
-            [returnCode,position] = getRoverPos(obj,rover,obj.sim.simx_opmode_blocking);
-            [returnCode] = getRoverOri(obj,rover,obj.sim.simx_opmode_streaming);
-            [returnCode, orientations] = getRoverOri(obj,rover,obj.sim.simx_opmode_buffer);
-            position_x=position(:,1);
-            position_y=position(:,2);
-
-            if (orientations(1) >= 0)
-                theta_sample = orientations(3);
-            else
-                if(orientations(1) < 0)
-                    theta_sample = pi-orientations(3);
-                elseif(orientations(3) < 0)
-                    theta_sample = -orientations(3);
-                end
-            end
-
-            orien_0 = theta_sample;
-
-            rover_radius = 15;
-            wheel_radius = 5.22;
-            dphi = 0/ 180 * pi;
-            phi = orien_0;
-            % dphi = phi;
-            dist_x = zeros(500);
-            dist_y = zeros(500);
-            dist_x(1:500) = x-position_x;
-            dist_y(1:500) = y-position_y;
-            i = 1;
-            elapsedTime = 1;
-            threshold = 0.1;
-
-            %control
-            while abs(position_x-x) >= threshold || abs(position_y-y) >= threshold
-
-                tic;
-                %get object position for derivative
-                [returnCode, position_d] = getRoverPos(obj,rover,obj.sim.simx_opmode_blocking);
-                [returnCode, orientations] = getRoverOri(obj,rover,obj.sim.simx_opmode_buffer);
-                position_dx=position_d(:,1);
-                position_dy=position_d(:,2);
-
-                const_speed = 10;
-                Kp = 0.75;
-                Kd = 2.25;
-
-                dx = (x - position_x);
-                dy = (y - position_y);
-
-                if (orientations(1) >= 0)
-                    theta_sample = orientations(3);
-                else
-                    if(orientations(1) < 0)
-                        theta_sample = pi-orientations(3);
-                    elseif(orientations(2) < 0)
-                        theta_sample = -orientations(3);
-                    end
-                end
-
-                phi = theta_sample + (pi + 1.5);
-                disp(phi);
-                dphi = 2 / 180 * pi;
-                theta = abs(atan(dy/dx));
-
-                v_xs = (position_dx - position_x) / elapsedTime;
-                v_ys = (position_dy - position_y) / elapsedTime;
-
-                v_x = Kp * (const_speed * (dx/abs(dx)) * abs(cos(theta)) - v_xs) + Kd * (const_speed * (dx/abs(dx)) * abs(cos(theta)) - v_xs) / elapsedTime;
-                v_y = Kp * (const_speed * (dy/abs(dy)) * abs(sin(theta)) - v_ys) + Kd * (const_speed * (dy/abs(dy)) * abs(sin(theta)) - v_ys) / elapsedTime;
-                w = dphi;
-
-                v   = ( v_x * cos(phi) + v_y * sin(phi) ) / 7.5;
-                v_n = (-v_x * sin(phi) + v_y * cos(phi) ) / 7.5;
-
-                v0 = -v * sin(pi/3) + v_n * cos(pi/3) + w * rover_radius;
-                v1 =                - v_n             + w * rover_radius;
-                v2 =  v * sin(pi/3) + v_n * cos(pi/3) + w * rover_radius;
-
-                %setting motor speeds for straight line
-                [returnCode]=obj.sim.simxSetJointTargetVelocity(obj.clientID,rover.motorHandles(1),v0,obj.sim.simx_opmode_blocking);
-                [returnCode]=obj.sim.simxSetJointTargetVelocity(obj.clientID,rover.motorHandles(2),v1,obj.sim.simx_opmode_blocking);
-                [returnCode]=obj.sim.simxSetJointTargetVelocity(obj.clientID,rover.motorHandles(3),v2,obj.sim.simx_opmode_blocking);
-
-                %get object position
-                [returnCode,position] = getRoverPos(obj,rover,obj.sim.simx_opmode_blocking);
-                position_x=position(:,1);
-                position_y=position(:,2);
-
-                %record position
-                dist_x(i) = dist_x(i) - (x - position_x);
-                dist_y(i) = dist_y(i) - (y - position_y);
-                i = i + 1;
-
-                elapsedTime = toc;
-
-            end
-
-            % shut down motors
-            stop(obj,rover);
-            
-        end
         
         % let a rover go forward
         function goForward(obj,rover,velocity)
@@ -266,14 +187,25 @@ classdef roverControl
             setRoverMotorVelocities(obj,rover,motorVelocities);
         end
         
-        %%%%%%%%%% Obstacle Detection %%%%%%%%%%
+        %%%%%%%%%% Area Scanning %%%%%%%%%%
         
-        
-        
-        %%%%%%%%%% Formation Control %%%%%%%%%%
-        
-        
+        function scannedPoint = laser2World(~,detectedPoint,roverPos,roverOri)
+            scannedPoint = zeros(3,1);
+            scannedPoint(1) = roverPos(1)+detectedPoint(3);
+            scannedPoint(2) = roverPos(2)+detectedPoint(1);
+            
+            % rotation around z-axis
+            if (roverOri(3) < -pi/2)
+                yaw = roverOri(3) + (pi*3/2);
+            else
+                yaw = roverOri(3) - (pi/2);
+            end
+            
+            R = [cos(yaw) -sin(yaw) 0
+                 sin(yaw)  cos(yaw) 0
+                    0          0    1];
+            scannedPoint = R * scannedPoint;
+        end
         
     end
 end
-

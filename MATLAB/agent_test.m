@@ -45,6 +45,9 @@ if (clientID>-1)
     % initiate laser sensor
     [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_streaming);
     
+    % initiate camera
+    [returnCode,resolution,image] = rc.getCameraImage(rovers(1),0,sim.simx_opmode_streaming);
+    
     % get position and orientation of rover
     [returnCode,roverPos] = rc.getRoverPos(rovers(1),sim.simx_opmode_streaming);
     [returnCode,roverOri] = rc.getRoverOri(rovers(1),sim.simx_opmode_streaming);
@@ -70,7 +73,7 @@ if (clientID>-1)
     
     % Main loop
 %     while 1
-        
+%         
 %         a=input('Rover positions = '); %5 rovers [x1 y1 a1 x2 y2 a2 x3 y3 a3] 
 %     
 %         if (a == 0)
@@ -79,11 +82,11 @@ if (clientID>-1)
 % 
 %         packedData=sim.simxPackFloats(a);
 %         [returnCode]=sim.simxWriteStringStream(clientID,'roverCoordinates',packedData,sim.simx_opmode_oneshot); 
-        
+%         
 %         % laser sensor processing
 %         [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_buffer);
 %         if detectionState && returnCode == sim.simx_return_ok
-%             distance = abs(norm(detectedPoint) - 0.15);
+%             distance = abs(norm(detectedPoint) - 0.145);
 %             theta = 180 * atan(detectedPoint(1)/detectedPoint(3)) / pi;
 %             fprintf('%.4fm %.2fdegrees\n',distance,theta); % 0.15m bias
 %         end
@@ -95,6 +98,13 @@ if (clientID>-1)
 %         disp(roverOri);
 %         
 %         % timestep
+%         pause(0.1);
+%     end
+    
+    % camera test
+%     for i = 1:100
+%         [returnCode,resolution,image] = rc.getCameraImage(rovers(1),0,sim.simx_opmode_buffer);
+%         imshow(image);
 %         pause(0.1);
 %     end
     
