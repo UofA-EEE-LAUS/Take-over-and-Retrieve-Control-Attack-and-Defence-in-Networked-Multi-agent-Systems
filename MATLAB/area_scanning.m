@@ -31,19 +31,19 @@ if (clientID>-1)
     rovers = rc.initRovers(roverCount);
     
     % initiate laser sensor
-    [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_streaming);
+    [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(2),sim.simx_opmode_streaming);
     
     % get position and orientation of rover
-    [returnCode,rovers(1).position] = rc.getRoverPos(rovers(1),sim.simx_opmode_streaming);
-    [returnCode,rovers(1).orientation] = rc.getRoverOri(rovers(1),sim.simx_opmode_streaming);
+    [returnCode,rovers(2).position] = rc.getRoverPos(rovers(2),sim.simx_opmode_streaming);
+    [returnCode,rovers(2).orientation] = rc.getRoverOri(rovers(2),sim.simx_opmode_streaming);
     
     % set target for rovers
     % [x1 y1 angle1 
     %  x2 y2 angle2 
     %  x3 y3 angle3]
-    roverTargets = [-0.25 0.75 150 
-                    -2.25 0.75 150 
-                     1.75 0.75 150];
+    roverTargets = [-0.25 0.75 -30 
+                    -2.25 0.75 330 
+                     1.75 0.75 -30];
     for i = 1:roverCount
         rovers(i).target = roverTargets(i,:);
     end
@@ -67,18 +67,18 @@ if (clientID>-1)
         tic;
         
         % read data from rover
-        [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(1),sim.simx_opmode_buffer);
-        [returnCode,rovers(1).position] = rc.getRoverPos(rovers(1),sim.simx_opmode_buffer);
-        [returnCode,rovers(1).orientation] = rc.getRoverOri(rovers(1),sim.simx_opmode_buffer);
+        [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(2),sim.simx_opmode_buffer);
+        [returnCode,rovers(2).position] = rc.getRoverPos(rovers(2),sim.simx_opmode_buffer);
+        [returnCode,rovers(2).orientation] = rc.getRoverOri(rovers(2),sim.simx_opmode_buffer);
         
-        plot(rovers(1).position(1),rovers(1).position(2),'b-o');
+        plot(rovers(2).position(1),rovers(2).position(2),'b-o');
         if detectionState
-            scannedPoint = rc.laser2World(detectedPoint,rovers(1).position,rovers(1).orientation);
+            scannedPoint = rc.laser2World(detectedPoint,rovers(2).position,rovers(2).orientation);
             plot(scannedPoint(1),scannedPoint(2),'r-o');
         end
         
         % check the difference between current position and target
-        diff = rovers(1).getTargetDiff();
+        diff = rovers(2).getTargetDiff();
         if (diff(1) < 0.05) && (diff(2) < 1)
             break;
         end

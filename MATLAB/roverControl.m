@@ -147,7 +147,7 @@ classdef roverControl
         
         % let a rover go forward
         function goForward(obj,rover,velocity)
-            motorVelocities = [0,0,1];
+            motorVelocities = [-1,0,1];
             setRoverMotorVelocities(obj,rover,velocity * motorVelocities);
         end
         
@@ -189,22 +189,30 @@ classdef roverControl
         
         %%%%%%%%%% Area Scanning %%%%%%%%%%
         
+        % transform laser readings into world frame coordinates
         function scannedPoint = laser2World(~,detectedPoint,roverPos,roverOri)
-            scannedPoint = zeros(3,1);
-            scannedPoint(1) = roverPos(1)+detectedPoint(3);
-            scannedPoint(2) = roverPos(2)+detectedPoint(1);
+            % the point scanned in 2D on x-y coordinates
+            scannedPoint = detectedPoint';
             
-            % rotation around z-axis
-            if (roverOri(3) < -pi/2)
-                yaw = roverOri(3) + (pi*3/2);
-            else
-                yaw = roverOri(3) - (pi/2);
-            end
+            % laser sensor orientation
+            %ori = atan(detectedPoint(1)/detectedPoint(3));
             
-            R = [cos(yaw) -sin(yaw) 0
-                 sin(yaw)  cos(yaw) 0
-                    0          0    1];
-            scannedPoint = R * scannedPoint;
+            roll = pi/2;
+            yaw = roverOri(3);
+            
+            % rotation matrices
+            Ryaw = [cos(yaw) -sin(yaw) 0
+                    sin(yaw)  cos(yaw) 0
+                       0         0     1];
+            
+            Rroll = [1      0        0
+                     0 cos(roll) -sin(roll)
+                     0 sin(roll)  cos(roll)];
+                 
+            scannedPoint = Rroll * scannedPoint;
+            scannedPoint = Ryaw * scannedPoint;
+            scannedPoint = scannedPoint + roverPos;
+            scannedPoint(2) = scannedPoint(2) + 2;
         end
         
     end
