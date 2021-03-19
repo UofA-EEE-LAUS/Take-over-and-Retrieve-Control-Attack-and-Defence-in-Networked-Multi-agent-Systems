@@ -13,6 +13,16 @@
 % By Liuxin Shen 
 % Update rover feedback function
 % Update feedback and receive function
+
+% v0.4 update 2021.3.17
+% By Liuxin Shen
+% Update rover read with mirror attack dection system
+% Add varibale u1, u2, u3 for mirror udp port, add reset flag
+% Update constructor and delete function based on the above update
+
+% v0.4 update 2021.3.18
+% By Liuxin Shen
+% Fix bugs on readUDP(msg comparing)
 classdef rover <handle
     
     properties
@@ -33,10 +43,12 @@ classdef rover <handle
         accelHandle;
         
         % UDP host and received data
-        u;
+        u1;
+        u2;
+        u3;
         port;
         msgID;
-        flag;
+        reset; %used for system failure
     end
     
     methods
@@ -59,36 +71,80 @@ classdef rover <handle
             obj.accelHandle = accelHandle;
             
             obj.port = 5010 + roverID;
-            obj.u = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port);
-            obj.u.EnablePortSharing = 'on';
-            fopen(obj.u);
-            obj.flag=0;
+            obj.u1 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port);
+            obj.u1.EnablePortSharing = 'on';
+            fopen(obj.u1);
+            obj.u2 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port+100);
+            obj.u2.EnablePortSharing = 'on';
+            fopen(obj.u2);
+            obj.u3 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port+200);
+            obj.u3.EnablePortSharing = 'on';
+            fopen(obj.u3);
+            obj.reset=0;
             obj.msgID=10*roverID;
         end
         
         % destructor - IMPORTANT: Clean up UDP ports
         
         function delete(obj)
-            fclose(obj.u);
-            delete(obj.u);
+            fclose(obj.u1);
+            delete(obj.u1);
+            fclose(obj.u2);
+            delete(obj.u2);
+            fclose(obj.u3);
+            delete(obj.u3);
         end
         
         % methods
+        % feedback rover status to the host
         function state=feedback(obj,msgID)
             state=1;
             obj.writeUDP(msgID);
         end
-        % feedback rover status to the host
+        
+        % write msg to host
         function writeUDP(obj,msg)
             
-            fwrite(obj.u,msg);
+            fwrite(obj.u1,msg);
         end
         
         % read received data from host
         function received = readUDP(obj)
-            %detection update later
-            received = fread(obj.u);
-%             obj.receivelist= [obj.receivelist received(1:2);
+            received = [];
+            %mirror attack detection update:
+            msg1=fread(obj.u1);
+%             disp('msg1');
+%             disp(msg1);
+%             disp(size(msg1));
+            msg2=fread(obj.u2);
+%             disp('msg2');
+%             disp(msg2);
+%             disp(size(msg2));
+            msg3=fread(obj.u3);
+%             disp('msg3');
+%             disp(msg3);
+%             disp(size(msg3));
+            %simple version of detect:
+            if  isequal(msg1,msg2)
+                received=msg1;
+            elseif isequal(msg1,msg3)
+                received=msg1;
+            elseif isequal(msg3,msg2)
+                received=msg2;
+            else 
+               obj.reset=1;
+            end 
+            %write feedback msg to the host,depends on reset flag value
+            if obj.reset~=1
+                fprintf("rover %d receive",obj.roverID);
+                obj.feedback(obj.msgID);
+                disp(obj.msgID);
+                obj.msgID=obj.msgID+1;
+            else 
+                fprintf("rover %d reset",obj.roverID);
+                obj.reset_port();
+            end
+%          received = fread(obj.u1);
         end
         
         % get the distance and angle from current position to target
@@ -100,17 +156,27 @@ classdef rover <handle
         
         function state=reset_port(obj)
             state=1;
-%             obj.flag=6;
+            obj.reset=0;
             %reset the port
-            fclose(obj.u);
-            delete(obj.u);
+            fclose(obj.u1);
+            delete(obj.u1);
+            fclose(obj.u2);
+            delete(obj.u2);
+            fclose(obj.u3);
+            delete(obj.u3);
             obj.port = obj.port+10;
             disp(obj.port);
-            obj.u = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port);
-            fopen(obj.u);
+            obj.u1 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port);
+            fopen(obj.u1);
+            obj.u2 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port+100);
+            fopen(obj.u2);
+            obj.u3 = udp('127.0.0.1','RemotePort',4012,'LocalPort',obj.port+200);
+            fopen(obj.u3);
             %sent the reset ID to the agent 
             reset_msg=['-' int2str(obj.roverID) int2str(obj.port) int2str(obj.msgID)];
             obj.writeUDP(reset_msg);
+            disp(reset_msg);
+            disp('Reset successfully');
             
         end
         
