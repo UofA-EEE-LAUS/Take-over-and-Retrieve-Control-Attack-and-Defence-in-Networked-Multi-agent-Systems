@@ -13,54 +13,10 @@ import string
 import struct
 import time
 
-# check if the string is numberical
-def isNum(data):
-    # ignore negative sign
-    if data[0] == '-':
-        data = data[1:]
-
-    tmp_list = data.split('.')
-
-    for tmp in tmp_list:
-        if not tmp.isnumeric():
-            return False
-    
-    return True
-
-# parse UDP packet message to string list
-def parseData(data):
-    tmp_list = data.decode("utf-8").split(';')
-
-    num_list = []
-    str_list = []
-
-    for tmp in tmp_list:
-        if isNum(tmp):
-            num_list.append(float(tmp))
-        else:
-            str_list.append(tmp)
-
-    return str_list,num_list
-
-# encapsulate string lists to bytes
-def encapData(attrs,vals):
-    tmp = ''
-
-    if len(attrs) == len(vals):
-        for i in range(len(attrs)):
-            tmp = tmp + attrs[i] + ';' + str(vals[i]) + ';'
-
-        tmp = tmp[0:len(tmp)-1]
-        
-    else:
-        print('Size not equal!')
-    
-    return tmp
-
 # send UDP packet to destination
 def writeUDP(data,sport,dip,dport,length,chksum):
     s = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)
-
+    #chksum = in4_chksum(socket.IPPROTO_UDP, packet[IP], udp_raw)
     udp_header = struct.pack('!HHHH', sport, dport, length, chksum)
     s.sendto(udp_header + data, (dip, dport))
 
@@ -74,27 +30,32 @@ if __name__ == '__main__':
 
     for pkt in pkts:
         # extract message from captured packet
-        str_list,num_list = parseData(pkt.load)
+        #str_list,num_list = parseData(pkt.load)
+        msg = pkt.load
         sip = pkt.src
+        #print(sip)
         dip = pkt.dst
         sport = pkt.sport
         dport = pkt.dport
         chksum = pkt[UDP].chksum
+
+        #chksum = checksum(pseudo_header + udp_header + payload)
 
         # print info of captured packets
         print('\n=== Packet %d ===' %counter)
         print('Source: %s:%s' %(sip, sport))
         print('Destination: %s:%s' %(dip, dport))
         print('Checksum: %s' %chksum)
-        print('Content: ', str_list, num_list)
+        print('Content: ', msg)
         
         # replay packet to original destination
         try: 
-            msg = bytes(encapData(str_list,num_list),'utf-8')
+            #msg = bytes(encapData(str_list,num_list),'utf-8')
+            #print(msg)
             writeUDP(msg,sport,dip,dport,8 + len(msg),chksum)
             print('\nSuccessfully replayed packet %d to %s:%s\n' %(counter,dip,dport))
         except:
             print('Error: did not replay packet')
         
         counter += 1
-        time.sleep(5)
+        time.sleep(3)
