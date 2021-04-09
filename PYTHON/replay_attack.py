@@ -20,6 +20,15 @@ def writeUDP(data,sport,dip,dport,length,chksum):
     udp_header = struct.pack('!HHHH', sport, dport, length, chksum)
     s.sendto(udp_header + data, (dip, dport))
 
+# calculate UDP checksum
+'''
+def checksum(msg)
+    chksum = 0
+    msg_length = len(msg)
+    if (msg_length % 2)
+        msg_length = msg_length + 1
+'''
+
 # main function
 if __name__ == '__main__':
 
@@ -50,12 +59,10 @@ if __name__ == '__main__':
         
         # replay packet to original destination
         try: 
-            #msg = bytes(encapData(str_list,num_list),'utf-8')
-            #print(msg)
             writeUDP(msg,sport,dip,dport,8 + len(msg),chksum)
             print('\nSuccessfully replayed packet %d to %s:%s\n' %(counter,dip,dport))
         except:
             print('Error: did not replay packet')
-        
+            
         counter += 1
-        time.sleep(3)
+        time.sleep(2)
