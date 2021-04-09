@@ -187,33 +187,5 @@ classdef roverControl
             setRoverMotorVelocities(obj,rover,motorVelocities);
         end
         
-        %%%%%%%%%% Area Scanning %%%%%%%%%%
-        
-        % transform laser readings into world frame coordinates
-        function scannedPoint = laser2World(~,detectedPoint,roverPos,roverOri)
-            % the point scanned in 2D on x-y coordinates
-            scannedPoint = detectedPoint';
-            
-            % laser sensor orientation
-            %ori = atan(detectedPoint(1)/detectedPoint(3));
-            
-            roll = pi/2;
-            yaw = roverOri(3);
-            
-            % rotation matrices
-            Ryaw = [cos(yaw) -sin(yaw) 0
-                    sin(yaw)  cos(yaw) 0
-                       0         0     1];
-            
-            Rroll = [1      0        0
-                     0 cos(roll) -sin(roll)
-                     0 sin(roll)  cos(roll)];
-                 
-            scannedPoint = Rroll * scannedPoint;
-            scannedPoint = Ryaw * scannedPoint;
-            scannedPoint = scannedPoint + roverPos;
-            scannedPoint(2) = scannedPoint(2) + 2;
-        end
-        
     end
 end
