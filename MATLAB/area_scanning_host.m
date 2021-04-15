@@ -50,6 +50,7 @@ pause(3);
 while 1
     % receive data from agent
     msg = host.readUDP();
+    valid = false;
     
 	% store into buffer
     msg_buffer(msg_counter) = char(msg');
@@ -59,15 +60,15 @@ while 1
     end
     
     % parse message into a matrix of data pairs
-    msg_matrix = host.parseMsg(msg);
+    [valid,roverID,msgID,detected,pos,ori,tar,det] = host.parseMsg(msg);   
     
-%     plot(rovers(2).position(1),rovers(2).position(2),'b-o');
-%     if detectionState
-%         scannedPoint = rc.laser2World(detectedPoint,rovers(2).position,rovers(2).orientation);
-%         plot(scannedPoint(1),scannedPoint(2),'r-o');
-%     end
+    if valid
+        plot(pos(1),pos(2),'b-o');
+        if detected
+            scannedPoint = host.laser2World(det,pos,ori);
+            plot(scannedPoint(1),scannedPoint(2),'r-o');
+        end
+    end
 end
 
 host.delete();
-% fclose(host);
-% delete(host);

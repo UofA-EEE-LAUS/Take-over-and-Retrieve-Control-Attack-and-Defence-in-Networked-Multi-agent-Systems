@@ -63,7 +63,6 @@ if (clientID>-1)
         
         % send current status to host
         msg = rovers(2).encapData();
-        disp(msg);
         
         % check the difference between current position and target
         diff = rovers(2).getTargetDiff();

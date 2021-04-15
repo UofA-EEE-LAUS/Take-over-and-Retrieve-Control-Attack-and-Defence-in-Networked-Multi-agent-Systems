@@ -197,14 +197,24 @@ classdef host <handle
         
         % parse data received from the host
         % store into a matrix of data pairs
-        function valid = parseMsg(~,received)
+        function [valid,roverID,msgID,detected,pos,ori,tar,det] = parseMsg(~,received)
             msg = char(received');
             valid = true;
+            
+            disp(msg);
+            
+            % required variables
+            roverID = 0;
+            msgID = 0;
+            detected = 0;
+            pos = zeros(1,3);
+            ori = zeros(1,3);
+            tar = zeros(1,3);
+            det = zeros(1,3);
             
             % try to parse the received message
             try
                 msg = split(split(msg,";"),":");
-                disp(msg)
             catch
                 % report a warning and return if incorrect format
                 warning('INCORRECT MESSAGE FORMAT');
@@ -214,7 +224,37 @@ classdef host <handle
             
             % process data
             for i = 1:size(msg,1)
-                
+                if msg(i,1) == "id"
+                    roverID = str2double(msg(i,2));
+                elseif msg(i,1) == "msgid"
+                    msgID = str2double(msg(i,2));
+                elseif msg(i,1) == "x"
+                    pos(1) = str2double(msg(i,2));
+                elseif msg(i,1) == "y"
+                    pos(2) = str2double(msg(i,2));
+                elseif msg(i,1) == "z"
+                    pos(3) = str2double(msg(i,2));
+                elseif msg(i,1) == "roll"
+                    ori(1) = str2double(msg(i,2));
+                elseif msg(i,1) == "pitch"
+                    ori(2) = str2double(msg(i,2));
+                elseif msg(i,1) == "yaw"
+                    ori(3) = str2double(msg(i,2));
+                elseif msg(i,1) == "xt"
+                    tar(1) = str2double(msg(i,2));
+                elseif msg(i,1) == "yt"
+                    tar(2) = str2double(msg(i,2));
+                elseif msg(i,1) == "at"
+                    tar(3) = str2double(msg(i,2));
+                elseif msg(i,1) == "d"
+                    detected = str2double(msg(i,2));
+                elseif msg(i,1) == "xd"
+                    det(1) = str2double(msg(i,2));
+                elseif msg(i,1) == "yd"
+                    det(2) = str2double(msg(i,2));
+                elseif msg(i,1) == "zd"
+                    det(3) = str2double(msg(i,2));
+                end
             end
         end
         
