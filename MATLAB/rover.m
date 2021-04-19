@@ -202,26 +202,29 @@ classdef rover <handle
 %             disp('msg1');
 %             disp(msg1);
 %             disp(size(msg1));
-            msg2 = fread(obj.u2);
+            msg2 = fread(obj.u2,1);
 %             disp('msg2');
 %             disp(msg2);
 %             disp(size(msg2));
-            msg3 = fread(obj.u3);
+            msg3 = fread(obj.u3,1);
 %             disp('msg3');
 %             disp(msg3);
 %             disp(size(msg3));
 
             %simple detection
             if isequal(msg1,msg2)
-                received = parseMsg(msg1);
+                received = msg1;
             elseif isequal(msg1,msg3)
-                received = parseMsg(msg1);
+                received = msg1;
             elseif isequal(msg3,msg2)
-                received = parseMsg(msg2);
+                received = msg2;
             else 
                obj.reset = 1;
             end
-            
+            disp(class(received))
+            if obj.parseMsg(received)==0
+                received="";
+            end
             %write feedback msg to the host,depends on reset flag value
             if obj.reset ~= 1
                 fprintf("rover %d received",obj.roverID);
@@ -256,7 +259,7 @@ classdef rover <handle
             
             % update ports
             obj.ports = obj.ports + 10;
-            setupUDP();
+            obj.setupUDP();
             
             disp('Reset successfully');
         end
