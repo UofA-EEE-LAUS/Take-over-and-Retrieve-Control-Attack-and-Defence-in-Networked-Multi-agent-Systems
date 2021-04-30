@@ -60,6 +60,7 @@ classdef rover <handle
         
         % records system failure
         reset;
+        ra;
     end
     
     methods
@@ -87,6 +88,7 @@ classdef rover <handle
             
             obj.reset = 0;
             obj.msgID = 10 * roverID;
+            obj.ra = 2;
         end
         
         % destructor - IMPORTANT: Clean up UDP ports
@@ -116,8 +118,8 @@ classdef rover <handle
         % feedback rover status to the host
         function rtn = feedback(obj,status)
             rtn = 1;
-            msg = "id:%d;msgid:%d;status:%d";
-            msg = sprintf(msg,obj.roverID,obj.msgID,status);
+            msg = "id:%d;port:%d;status:%d";
+            msg = sprintf(msg,obj.roverID,obj.ports(1),status);
             obj.writeUDP(msg);
         end
         
@@ -155,7 +157,7 @@ classdef rover <handle
                 det = "d:%d";
                 det = sprintf(det,obj.detected);
             end
-                
+            
             msg = id + pos + ori + tar + det;
             writeUDP(obj,msg);
         end
@@ -190,7 +192,7 @@ classdef rover <handle
         
         % read received data from host
         function received = readUDP(obj)
-            received = fread(obj.u1,1);
+            received = fread(obj.u1);
         end
         
         % read received data from host
@@ -198,15 +200,17 @@ classdef rover <handle
             received = "";
             
             % mirror attack detection update
-            msg1 = fread(obj.u1,1);
+            msg1 = fread(obj.u1)';
+            tmp = decoder(msg1,obj.ra); 
+            msg1 = tmp;
 %             disp('msg1');
 %             disp(msg1);
 %             disp(size(msg1));
-            msg2 = fread(obj.u2,1);
+            msg2 = decoder(fread(obj.u2)',obj.ra);
 %             disp('msg2');
 %             disp(msg2);
 %             disp(size(msg2));
-            msg3 = fread(obj.u3,1);
+            msg3 = decoder(fread(obj.u3)',obj.ra);
 %             disp('msg3');
 %             disp(msg3);
 %             disp(size(msg3));
@@ -221,19 +225,22 @@ classdef rover <handle
             else 
                obj.reset = 1;
             end
-            disp(class(received))
-            if obj.parseMsg(received)==0
-                received="";
+            valid = obj.parseMsg(received);
+            if valid==0
+                disp(1234);
+                %received="";
             end
             %write feedback msg to the host,depends on reset flag value
             if obj.reset ~= 1
                 fprintf("rover %d received",obj.roverID);
-                obj.feedback(1);
+                obj.feedback(0);
                 obj.msgID = obj.msgID + 1;
             else 
                 fprintf("rover %d reset",obj.roverID);
-                obj.feedback(0);
                 obj.resetPorts();
+                obj.feedback(1);
+                pause(2);
+                received = obj.mirrorRead();
             end
         end
         
@@ -258,6 +265,7 @@ classdef rover <handle
             delete(obj.u3);
             
             % update ports
+            
             obj.ports = obj.ports + 10;
             obj.setupUDP();
             

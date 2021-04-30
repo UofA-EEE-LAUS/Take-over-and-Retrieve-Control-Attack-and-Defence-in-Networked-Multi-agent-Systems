@@ -1,3 +1,4 @@
+
 % FYP 7331
 % host.m
 % By Liuxin Shen
@@ -6,7 +7,7 @@
 % Update 2021.3.9
 % By Zhiang Cheng
 % Complete method hostsent, feedback and resend.
-% Complete method hostread 
+% Complete method hostread
 % This class is used to represent a host in the MAS control
 
 % Update 2021.3.17
@@ -33,11 +34,14 @@
 % Optimised code structure
 
 classdef host <handle
-    properties 
+    properties
         u; %host udp varaible
         counter; %the unique ID of this host
-        history; %stores the historial message sent from the host
+        history1; %stores the historial message sent from the host
+        history2; %stores the historial message sent from the host
+        history3; %stores the historial message sent from the host
         target_ports; %Store the id of each rover and their corresponding port number
+        ra;
     end
     
     methods
@@ -48,8 +52,11 @@ classdef host <handle
             fopen(obj.u);
             
             obj.counter=[0 0 0];
-            obj.history=[];
+            obj.history1=[];
+            obj.history2=[];
+            obj.history3=[];
             obj.target_ports=[remoteport+1 localport 1;remoteport+2 localport 2;remoteport+3 localport 3];
+            obj.ra = 2;
         end
         
         % Destructor
@@ -63,7 +70,7 @@ classdef host <handle
             state=1;
             obj.u.RemotePort=port;
         end
- 
+        
         function state=mirrorSend(obj,agentPort,msg)
             %the native port and msg for input
             state=1;
@@ -72,53 +79,78 @@ classdef host <handle
             obj.writeUDP(agentPort+200,msg);   %mirror3
         end
         
-        function state=hostSend(obj,rover_id,input)
-            %add a counter to input
-            state=1;
-            msg_c=num2str(obj.counter(rover_id)+rover_id*10);
-            msg=char(msg_c+input);
-            obj.counter(rover_id)=obj.counter(rover_id)+1;
-            %store the msg in msg history
-            obj.history=[obj.history;msg];
-            %send msg to agent, and report if successful
-            disp('Message sent');
-            agent_port=obj.target_ports(rover_id,1);        
-            mirrorSend(obj,agent_port,msg); %use mirrorSend function instead of udpwrite
+%         function state=hostSend(obj,rover_id,input)
+%             %add a counter to input
+%             state=1;
+%             msg_c=num2str(obj.counter(rover_id)+rover_id*10);
+%             msg=char(msg_c+input);
+%             obj.counter(rover_id)=obj.counter(rover_id)+1;
+%             %store the msg in msg history
+%             obj.history=[obj.history;msg];
+%             %send msg to agent, and report if successful
+%             disp('Message sent');
+%             agent_port=obj.target_ports(rover_id,1);
+%             mirrorSend(obj,agent_port,msg); %use mirrorSend function instead of udpwrite
+%         end
+        
+%         function state=feedback(obj,msgcounter)
+%             state=1;
+%             %delete the related msg stored in history
+%             [m,~]=size(obj.history);
+%             ID=fix(msgcounter/10);
+%             for i=1:m
+%                 if (str2num(obj.history(i,1:2))==msgcounter)
+%                     obj.history(i,:)=[];
+%                     %print some information here
+%                     fprintf("message %d Successfully deleted",ID);
+%                     break;
+%                 elseif i==m
+%                     disp('Information not included');
+%                 end
+%             end
+%         end
+        
+        % function update the new agent port to the target ports
+        function state = set_port(obj, roverID, newport)
+            state = 1;
+            obj.target_ports(roverID,1) = newport;
         end
         
-        function state=feedback(obj,msgcounter)
-            state=1;
-            %delete the related msg stored in history
-            [m,~]=size(obj.history);
-            ID=fix(msgcounter/10);
-            for i=1:m
-                if (str2num(obj.history(i,1:2))==msgcounter)
-                obj.history(i,:)=[];
-                %print some information here
-                fprintf("message %d Successfully deleted",ID);
-                break;
-                elseif i==m
-                    disp('Information not included');
-                end
-            end
-        end
         
         %accept a reset order, update the new target_ports
-        function state=resend(obj,roverID,msgID)
+        function state=resend(obj,roverID)
             state=1;
             %based on input msgcounter,find the relate msg in history
-            [m,~]=size(obj.history);
-            msg=[];
-            target_port=obj.target_ports(roverID,1);
-            for i=1:m
-                if (str2num(obj.history(i,1:2))==msgID)
-                    msg=obj.history(i,:);
-                    disp(msg);
-                    break;
-                end
+            %[m,~]=size(obj.history);
+            
+            switch roverID
+                case 1
+                    msg=obj.history1;
+                case 2
+                    msg=obj.history2;
+                case 3
+                    msg=obj.history3;     
             end
+            target_port=obj.target_ports(roverID,1);
+            %             for i=1:m
+            %                 if (str2num(obj.history(i,1:2))==msgID)
+            %                     msg=obj.history(i,:);
+            %                     disp(msg);
+            %                     break;
+            %                 end
+            %             end
+            
             %send the msg to the new agent_port
+            disp("resend");
+            disp(msg);
             obj.mirrorSend(target_port,msg);
+        end
+        
+        function state = agent_reset(obj, roverID, newport)
+            state = 1;
+            obj.set_port(roverID, newport);
+            
+            obj.resend(roverID);
         end
         
         function state=writeUDP(obj,targetport,msg)
@@ -134,24 +166,24 @@ classdef host <handle
                 disp(msg);
                 %feedback detection(demo)
                 if ~isequal(msg(1),'-')
-                %call feedback
-                obj.feedback(msg);
-                else 
+                    %call feedback
+                    obj.feedback(msg);
+                else
                     disp ('resend');
                     msg=char(msg)';
                     %hostudp.reset(msg);
                     roverid=str2num(msg(2));
                     new_targetport=str2num(msg(3:6));
                     msgID=str2num(msg(7:8));
-
+                    
                     if 0<roverid<4
                         obj.target_ports(roverid,1)=new_targetport;
                         if (obj.resend(roverid,msgID)==1)
                             disp('resend successful');
-                        else 
+                        else
                             disp('resend failed');
                         end
-                    else 
+                    else
                         disp('error,out of boundary');
                     end
                 end
@@ -162,6 +194,8 @@ classdef host <handle
         
         % read received data from agent
         function received = readUDP(obj)
+            
+            
             received = fread(obj.u,1);
         end
         
@@ -180,13 +214,13 @@ classdef host <handle
             
             % rotation matrices
             Ryaw = [cos(yaw) -sin(yaw) 0
-                    sin(yaw)  cos(yaw) 0
-                       0         0     1];
+                sin(yaw)  cos(yaw) 0
+                0         0     1];
             
             Rroll = [1      0        0
-                     0 cos(roll) -sin(roll)
-                     0 sin(roll)  cos(roll)];
-                 
+                0 cos(roll) -sin(roll)
+                0 sin(roll)  cos(roll)];
+            
             scannedPoint = Rroll * scannedPoint;
             scannedPoint = Ryaw * scannedPoint;
             scannedPoint = scannedPoint + roverPos;
@@ -197,7 +231,7 @@ classdef host <handle
         
         % parse data received from the host
         % store into a matrix of data pairs
-        function [valid,roverID,msgID,detected,pos,ori,tar,det] = parseMsg(~,received)
+        function [valid,roverID,msgID,detected,pos,ori,tar,det] = parseMsg(obj,received)
             msg = char(received');
             valid = true;
             
@@ -211,6 +245,8 @@ classdef host <handle
             ori = zeros(1,3);
             tar = zeros(1,3);
             det = zeros(1,3);
+            newport = 0;
+            reset = 0;
             
             % try to parse the received message
             try
@@ -218,8 +254,6 @@ classdef host <handle
             catch
                 % report a warning and return if incorrect format
                 warning('INCORRECT MESSAGE FORMAT');
-                valid = false;
-                return
             end
             
             % process data
@@ -254,23 +288,71 @@ classdef host <handle
                     det(2) = str2double(msg(i,2));
                 elseif msg(i,1) == "zd"
                     det(3) = str2double(msg(i,2));
+                elseif msg(i,1) == "status"
+                    reset = str2double(msg(i,2));
+                elseif msg(i,1) == "port"
+                    newport = str2double(msg(i,2));
                 end
+                
             end
+            
+            if reset == 1
+                obj.agent_reset(roverID, newport);
+            end
+        end
+        function test(obj)
+            disp("sucess");
         end
         
         % encapsulate target coordinates into strings of data pairs
         % and send to rovers in the format "xt:%.2f;yt:%.2f;at:%.2f";
         function msgs = encapTargets(obj,roverTargets)
             roverCount = size(roverTargets,1);
-            msgs = strings(roverCount,1);
             
             % send formatted coordinates to each rover
             for i = 1:roverCount
                 msg = "xt:%.2f;yt:%.2f;at:%.2f";
-                msgs(i) = sprintf(msg,roverTargets(i,1),roverTargets(i,2),roverTargets(i,3));
-                obj.mirrorSend(obj.target_ports(i,1),msgs(i));
+                
+                tmp = sprintf(msg,roverTargets(i,1),roverTargets(i,2),roverTargets(i,3));
+                %msgs(i) = encoder(tmp, obj.ra);
+                tmp = encoder(tmp, obj.ra);
+                %obj.mirrorSend(obj.target_ports(i,1),msgs(i));
+                switch i
+                    case 1
+                        obj.history1= tmp;
+                    case 2
+                        obj.history2= tmp;
+                    case 3
+                        obj.history3= tmp;
+                end
+                obj.mirrorSend(obj.target_ports(i,1),tmp);
+                
             end
         end
-
+        
+        function msgs = encapTargets_o(obj,roverTargets)
+            roverCount = size(roverTargets,1);
+            
+            % send formatted coordinates to each rover
+            for i = 1:roverCount
+                msg = "xt:%.2f;yt:%.2f;at:%.2f";
+                
+                tmp = sprintf(msg,roverTargets(i,1),roverTargets(i,2),roverTargets(i,3));
+                %msgs(i) = encoder(tmp, obj.ra); 
+                %obj.mirrorSend(obj.target_ports(i,1),msgs(i));
+                switch i
+                    case 1
+                        obj.history1= tmp;
+                    case 2
+                        obj.history2= tmp;
+                    case 3
+                        obj.history3= tmp;
+                end
+                obj.writeUDP(obj.target_ports(i,1),tmp);
+                disp("msg sent:");
+                disp(tmp);
+            end
+        end
+        
     end
 end

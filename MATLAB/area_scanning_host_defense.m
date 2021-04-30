@@ -20,7 +20,7 @@ host = host(4012,5010);
 buffer_size = 10;
 msg_buffer = strings(1,buffer_size);
 msg_counter = 1;
-
+%ra = 2;
 % set the sampling rate in Hz
 samplingRate = 3;
 
@@ -40,8 +40,8 @@ ylabel('y');
 %  x3 y3 angle3]
 roverTargets = [-0.25 0.75 -30 
                 -2.25 0.75 330 
-                 1.75 0.75 -30];
-host.encapTargets_o(roverTargets);
+                +1.75 0.75 -30];
+host.encapTargets(roverTargets);
 
 
 % wait for agent to reply

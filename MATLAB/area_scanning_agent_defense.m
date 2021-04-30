@@ -7,7 +7,7 @@
 clear;
 close all;
 clc;
-
+tic
 % initialisation
 sim=remApi('remoteApi');
 sim.simxFinish(-1); % close all opened connections
@@ -40,11 +40,11 @@ if (clientID>-1)
     
     % set the sampling rate in Hz
     samplingRate = 3;
-    
+    toc
     % receive target coordinates from the host and send to V-REP
     for i = 1:roverCount
+        %fprintf("rover %d receieved:",i);
         msg = rovers(i).mirrorRead();
-        disp(msg);
         target = rovers(i).target;
         returnCode = rc.setRoverCoordinate(rovers(i),target(1),target(2),target(3));
     end
@@ -61,7 +61,7 @@ if (clientID>-1)
         
         % send current status to host
         msg = rovers(2).encapData();
-        
+        disp(msg)
         
         % check the difference between current position and target
         diff = rovers(2).getTargetDiff();

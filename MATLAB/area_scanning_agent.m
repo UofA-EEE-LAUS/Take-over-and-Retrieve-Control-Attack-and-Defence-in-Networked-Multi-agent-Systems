@@ -43,6 +43,7 @@ if (clientID>-1)
     
     % receive target coordinates from the host and send to V-REP
     for i = 1:roverCount
+        fprintf("rover %d receieved:",i);
         msg = rovers(i).readUDP();
         valid = rovers(i).parseMsg(msg);
         if valid
@@ -63,6 +64,7 @@ if (clientID>-1)
         
         % send current status to host
         msg = rovers(2).encapData();
+        disp(msg);
         
         % check the difference between current position and target
         diff = rovers(2).getTargetDiff();
