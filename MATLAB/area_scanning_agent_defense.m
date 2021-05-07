@@ -43,7 +43,7 @@ if (clientID>-1)
     toc
     % receive target coordinates from the host and send to V-REP
     for i = 1:roverCount
-        %fprintf("rover %d receieved:",i);
+        fprintf("rover %d receieved:\n",i);
         msg = rovers(i).mirrorRead();
         target = rovers(i).target;
         returnCode = rc.setRoverCoordinate(rovers(i),target(1),target(2),target(3));

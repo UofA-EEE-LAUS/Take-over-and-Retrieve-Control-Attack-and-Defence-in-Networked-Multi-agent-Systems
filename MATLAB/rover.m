@@ -159,6 +159,7 @@ classdef rover <handle
             end
             
             msg = id + pos + ori + tar + det;
+            fprintf('Sending message: %s\n', msg);
             writeUDP(obj,msg);
         end
         
@@ -166,6 +167,8 @@ classdef rover <handle
         function valid = parseMsg(obj,received)
             msg = char(received');
             valid = true;
+            
+            fprintf("rover %d receieved:\n",obj.roverID);
             
             % try to parse the received message
             try

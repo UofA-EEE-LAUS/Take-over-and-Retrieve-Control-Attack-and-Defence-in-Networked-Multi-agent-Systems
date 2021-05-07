@@ -19,7 +19,7 @@ host = host(4012,5010);
 % message buffer
 buffer_size = 10;
 msg_buffer = strings(1,buffer_size);
-msg_counter = 1;
+buffer_ptr = 1;
 %ra = 2;
 % set the sampling rate in Hz
 samplingRate = 3;
@@ -28,35 +28,39 @@ samplingRate = 3;
 figure;
 hold on;
 grid on;
-xlim([-5 5]);
-ylim([-5 5]);
+xlim([-10 10]);
+ylim([-10 10]);
 title('2-D Area Scan')
 xlabel('x');
 ylabel('y');
 
-% set target for rovers
+% set target for rovers in the format
 % [x1 y1 angle1 
 %  x2 y2 angle2 
 %  x3 y3 angle3]
-roverTargets = [-0.25 0.75 -30 
-                -2.25 0.75 330 
-                +1.75 0.75 -30];
+roverTargets = [-0.25 1.5 -30 
+                -5.25 1.5 330 
+                 4.75 1.5 -30];
 host.encapTargets(roverTargets);
-
 
 % wait for agent to reply
 pause(3);
 
-while 1
-    % receive data from agent
+% receive data from agent
+msg = '';
+try
     msg = host.readUDP();
-    valid = false;
+catch
+    error(">> Read UDP timeout! <<");
+end
+    
+while ~isempty(msg)
     
 	% store into buffer
-    msg_buffer(msg_counter) = char(msg');
-    msg_counter = msg_counter + 1;
-    if msg_counter > buffer_size
-        msg_counter = 1;
+    msg_buffer(buffer_ptr) = char(msg');
+    buffer_ptr = buffer_ptr + 1;
+    if buffer_ptr > buffer_size
+        buffer_ptr = 1;
     end
     
     % parse message into a matrix of data pairs
@@ -68,6 +72,14 @@ while 1
             scannedPoint = host.laser2World(det,pos,ori);
             plot(scannedPoint(1),scannedPoint(2),'r-o');
         end
+    end
+    
+    % receive data from agent
+    msg = '';
+    try
+        msg = host.readUDP();
+    catch
+        error(">> Read UDP timeout! <<");
     end
 end
 
