@@ -57,7 +57,7 @@ if (clientID>-1)
         tic;
         
         for i = 1:roverCount
-        % read data from rover
+            % read data from rover
             [returnCode,rovers(i).detected,rovers(i).dPoints] = rc.getLaserReading(rovers(i),sim.simx_opmode_buffer);
             [returnCode,rovers(i).position] = rc.getRoverPos(rovers(i),sim.simx_opmode_buffer);
             [returnCode,rovers(i).orientation] = rc.getRoverOri(rovers(i),sim.simx_opmode_buffer);

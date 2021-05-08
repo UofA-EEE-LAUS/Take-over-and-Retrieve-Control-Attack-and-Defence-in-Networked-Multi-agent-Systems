@@ -7,7 +7,7 @@
 clear;
 close all;
 clc;
-tic
+
 % initialisation
 sim=remApi('remoteApi');
 sim.simxFinish(-1); % close all opened connections
@@ -31,22 +31,24 @@ if (clientID>-1)
     % initiate rovers
     rovers = rc.initRovers(roverCount);
     
-    % initiate laser sensor
-    [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(2),sim.simx_opmode_streaming);
-    
-    % get position and orientation of rover
-    [returnCode,rovers(2).position] = rc.getRoverPos(rovers(2),sim.simx_opmode_streaming);
-    [returnCode,rovers(2).orientation] = rc.getRoverOri(rovers(2),sim.simx_opmode_streaming);
-    
     % set the sampling rate in Hz
     samplingRate = 3;
-    toc
+
     % receive target coordinates from the host and send to V-REP
     for i = 1:roverCount
-        fprintf("rover %d receieved:\n",i);
+        % initiate laser sensor
+        [returnCode,detectionState,detectedPoint] = rc.getLaserReading(rovers(i),sim.simx_opmode_streaming);
+
+        % get position and orientation of rover
+        [returnCode,rovers(i).position] = rc.getRoverPos(rovers(i),sim.simx_opmode_streaming);
+        [returnCode,rovers(i).orientation] = rc.getRoverOri(rovers(i),sim.simx_opmode_streaming);
+        
         msg = rovers(i).mirrorRead();
-        target = rovers(i).target;
-        returnCode = rc.setRoverCoordinate(rovers(i),target(1),target(2),target(3));
+        valid = rovers(i).parseMsg(msg);
+        if valid
+            target = rovers(i).target;
+            returnCode = rc.setRoverCoordinate(rovers(i),target(1),target(2),target(3));
+        end
     end
     
     % Main loop
@@ -54,17 +56,18 @@ if (clientID>-1)
         % start recording time
         tic;
         
-        % read data from rover
-        [returnCode,rovers(2).detected,rovers(2).dPoints] = rc.getLaserReading(rovers(2),sim.simx_opmode_buffer);
-        [returnCode,rovers(2).position] = rc.getRoverPos(rovers(2),sim.simx_opmode_buffer);
-        [returnCode,rovers(2).orientation] = rc.getRoverOri(rovers(2),sim.simx_opmode_buffer);
-        
-        % send current status to host
-        msg = rovers(2).encapData();
-        disp(msg)
+        for i = 1:roverCount
+            % read data from rover
+            [returnCode,rovers(i).detected,rovers(i).dPoints] = rc.getLaserReading(rovers(i),sim.simx_opmode_buffer);
+            [returnCode,rovers(i).position] = rc.getRoverPos(rovers(i),sim.simx_opmode_buffer);
+            [returnCode,rovers(i).orientation] = rc.getRoverOri(rovers(i),sim.simx_opmode_buffer);
+
+            % send current status to host
+            msg = rovers(i).encapData();
+        end
         
         % check the difference between current position and target
-        diff = rovers(2).getTargetDiff();
+        diff = rovers(i).getTargetDiff();
         if (diff(1) < 0.05) && (diff(2) < 1)
             break;
         end

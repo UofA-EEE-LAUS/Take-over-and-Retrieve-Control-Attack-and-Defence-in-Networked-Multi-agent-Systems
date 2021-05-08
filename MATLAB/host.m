@@ -215,18 +215,17 @@ classdef host <handle
             yaw = roverOri(3);
             
             % rotation matrices
+            Rroll = [1      0        0
+                     0 cos(roll) -sin(roll)
+                     0 sin(roll)  cos(roll)];
+                 
             Ryaw = [cos(yaw) -sin(yaw) 0
                     sin(yaw)  cos(yaw) 0
-                    0         0     1];
-            
-            Rroll = [1      0        0
-                    0 cos(roll) -sin(roll)
-                    0 sin(roll)  cos(roll)];
+                    0         0        1];
             
             scannedPoint = Rroll * scannedPoint;
             scannedPoint = Ryaw * scannedPoint;
-            scannedPoint = scannedPoint + roverPos;
-            scannedPoint(2) = scannedPoint(2) + 2;
+            scannedPoint = scannedPoint + roverPos';
         end
         
         %%%%%%%%%% Message Parsing %%%%%%%%%%

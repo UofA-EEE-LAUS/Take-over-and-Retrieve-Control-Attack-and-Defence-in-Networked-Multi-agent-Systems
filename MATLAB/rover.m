@@ -218,7 +218,7 @@ classdef rover <handle
 %             disp(msg3);
 %             disp(size(msg3));
 
-            %simple detection
+            % simple detection
             if isequal(msg1,msg2)
                 received = msg1;
             elseif isequal(msg1,msg3)
@@ -228,12 +228,8 @@ classdef rover <handle
             else 
                obj.reset = 1;
             end
-            valid = obj.parseMsg(received);
-            if valid==0
-                disp(1234);
-                %received="";
-            end
-            %write feedback msg to the host,depends on reset flag value
+            
+            % write feedback msg to the host,depends on reset flag value
             if obj.reset ~= 1
                 fprintf("rover %d received",obj.roverID);
                 obj.feedback(0);

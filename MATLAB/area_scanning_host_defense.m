@@ -12,17 +12,10 @@ clc;
 % create host object
 host = host(4012,5010);
 
-% Start UDP host on port 4012
-% host = udp('127.0.0.1','RemotePort',5012,'LocalHost','127.0.0.1','LocalPort',4012);
-% fopen(host);
-
 % message buffer
 buffer_size = 10;
 msg_buffer = strings(1,buffer_size);
 buffer_ptr = 1;
-%ra = 2;
-% set the sampling rate in Hz
-samplingRate = 3;
 
 % graph parameters
 figure;
@@ -38,13 +31,13 @@ ylabel('y');
 % [x1 y1 angle1 
 %  x2 y2 angle2 
 %  x3 y3 angle3]
-roverTargets = [-0.25 1.5 -30 
+roverTargets = [-0.25 1.5 -330 
                 -5.25 1.5 330 
-                 4.75 1.5 -30];
+                 4.75 1.5 -330];
 host.encapTargets(roverTargets);
 
 % wait for agent to reply
-pause(3);
+pause(1);
 
 % receive data from agent
 msg = '';
@@ -53,19 +46,18 @@ try
 catch
     error(">> Read UDP timeout! <<");
 end
-    
+
+% main loop, stops when udp read timeouts after 10s
 while ~isempty(msg)
     
 	% store into buffer
     msg_buffer(buffer_ptr) = char(msg');
-    buffer_ptr = buffer_ptr + 1;
-    if buffer_ptr > buffer_size
-        buffer_ptr = 1;
-    end
+    buffer_ptr = mod(buffer_ptr + 1,buffer_size) + 1;
     
     % parse message into a matrix of data pairs
     [valid,roverID,msgID,detected,pos,ori,tar,det] = host.parseMsg(msg);   
     
+    % plot graph
     if valid
         plot(pos(1),pos(2),'b-o');
         if detected
@@ -83,4 +75,5 @@ while ~isempty(msg)
     end
 end
 
+% clean up
 host.delete();
