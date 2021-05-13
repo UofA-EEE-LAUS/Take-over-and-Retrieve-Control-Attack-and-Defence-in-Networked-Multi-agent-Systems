@@ -8,7 +8,7 @@ sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 ip = '127.0.0.1'
 
 #Port we direct to attack
-ports = [5011, 5012, 5013]
+ports = [5011, 5111, 5211]
 
 sent = 0
 #Infinitely loops to send packets to the port until the program is exited

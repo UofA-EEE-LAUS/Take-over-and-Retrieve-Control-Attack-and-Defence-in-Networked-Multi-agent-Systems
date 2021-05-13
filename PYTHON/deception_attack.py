@@ -68,7 +68,7 @@ def writeUDP(data,sport,dip,dport,length,chksum):
 if __name__ == '__main__':
 
     # read captured packets
-    pkts = rdpcap('1.pcap')
+    pkts = rdpcap('sample_tar.pcap')
 
     counter = 1
 
@@ -109,4 +109,4 @@ if __name__ == '__main__':
             print('Error: did not sent modified packets')
         
         counter += 1
-        time.sleep(2)
+        time.sleep(1)
