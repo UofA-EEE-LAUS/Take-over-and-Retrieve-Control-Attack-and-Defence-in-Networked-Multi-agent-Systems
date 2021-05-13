@@ -12,6 +12,7 @@ clc;
 % create host object
 host = host(4012,5010);
 
+pause(6);
 % message buffer
 buffer_size = 10;
 msg_buffer = strings(1,buffer_size);
