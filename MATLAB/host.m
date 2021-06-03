@@ -342,7 +342,7 @@ classdef host <handle
                 end
                 
                 obj.mirrorSend(obj.target_ports(i,1),tmp);
-                
+                fprintf("Sending Message: %s\n", tmp);
             end
         end
         

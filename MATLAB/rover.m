@@ -168,7 +168,7 @@ classdef rover <handle
             msg = char(received');
             valid = true;
             
-            fprintf("rover %d receieved:\n",obj.roverID);
+            fprintf("rover %d received:\n",obj.roverID);
             
             % try to parse the received message
             try
@@ -231,7 +231,6 @@ classdef rover <handle
             
             % write feedback msg to the host,depends on reset flag value
             if obj.reset ~= 1
-                fprintf("rover %d received",obj.roverID);
                 obj.feedback(0);
                 obj.msgID = obj.msgID + 1;
             else 
